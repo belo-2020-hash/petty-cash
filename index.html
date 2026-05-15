@@ -436,7 +436,7 @@ Fields to extract:
 Example: {"vendor":"GEMCO General Trading","date":"02/04/2026","amount":806.40,"vat":38.40,"purpose":"Soft Vanilla 1.6kg x8","category":"KITCHEN GOODS","invoice_no":"117104","notes":"Bank Transfer","confidence":"high","missing_fields":[]}`;
 
     const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key='+GEMINI_KEY,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+GEMINI_KEY,
       {
         method:'POST',
         headers:{'Content-Type':'application/json'},
