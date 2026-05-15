@@ -383,23 +383,19 @@ function enhanceImg(b64){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>{
-      const MAX=2000;
+      // Resize to max 1200px to keep payload small enough for Worker
+      const MAX=1200;
       let w=img.width,h=img.height;
-      if(w<1000||h<1000){const sc=Math.min(MAX/w,MAX/h);w=Math.round(w*sc);h=Math.round(h*sc);}
+      if(w>MAX||h>MAX){
+        const sc=Math.min(MAX/w,MAX/h);
+        w=Math.round(w*sc);h=Math.round(h*sc);
+      }
       const c=document.createElement('canvas');
       c.width=w;c.height=h;
       const ctx=c.getContext('2d');
       ctx.drawImage(img,0,0,w,h);
-      const id=ctx.getImageData(0,0,w,h);
-      const d=id.data;
-      for(let i=0;i<d.length;i+=4){
-        const f=1.2,b=8;
-        d[i]=Math.min(255,Math.max(0,f*(d[i]-128)+128+b));
-        d[i+1]=Math.min(255,Math.max(0,f*(d[i+1]-128)+128+b));
-        d[i+2]=Math.min(255,Math.max(0,f*(d[i+2]-128)+128+b));
-      }
-      ctx.putImageData(id,0,0);
-      resolve(c.toDataURL('image/jpeg',0.93).split(',')[1]);
+      // Compress to JPEG quality 0.7 to keep size small
+      resolve(c.toDataURL('image/jpeg',0.7).split(',')[1]);
     };
     img.onerror=()=>resolve(b64);
     img.src='data:image/jpeg;base64,'+b64;
