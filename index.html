@@ -435,15 +435,13 @@ Fields to extract:
 
 Example: {"vendor":"GEMCO General Trading","date":"02/04/2026","amount":806.40,"vat":38.40,"purpose":"Soft Vanilla 1.6kg x8","category":"KITCHEN GOODS","invoice_no":"117104","notes":"Bank Transfer","confidence":"high","missing_fields":[]}`;
 
+    // Send image + prompt to Cloudflare Worker
     const res = await fetch(WORKER_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:'image/jpeg',data:enhanced}},
-          {text:prompt}
-        ]}],
-        generationConfig:{temperature:0.1,maxOutputTokens:600}
+        imageB64: enhanced,
+        prompt: prompt
       })
     });
 
