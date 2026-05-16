@@ -431,18 +431,36 @@ Fields to extract:
 
 Example: {"vendor":"GEMCO General Trading","date":"02/04/2026","amount":806.40,"vat":38.40,"purpose":"Soft Vanilla 1.6kg x8","category":"KITCHEN GOODS","invoice_no":"117104","notes":"Bank Transfer","confidence":"high","missing_fields":[]}`;
 
-    // Send image + prompt to Cloudflare Worker
-    const res = await fetch(WORKER_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        imageB64: enhanced,
-        prompt: prompt
-      })
-    });
+    // Send image + prompt to Cloudflare Worker — with retry on rate limit
+    let res, attempts = 0;
+    while(attempts < 3) {
+      attempts++;
+      tx.textContent = attempts > 1 ? `🔄 Retry ${attempts}/3...` : '🤖 AI reading receipt...';
+      res = await fetch(WORKER_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          imageB64: enhanced,
+          prompt: prompt
+        })
+      });
+      // If rate limited (429) wait 5 seconds and retry
+      if(res.status === 429) {
+        if(attempts < 3) {
+          tx.textContent = '⏳ Rate limit hit — waiting 6 seconds...';
+          await new Promise(r => setTimeout(r, 6000));
+          continue;
+        }
+      }
+      break;
+    }
 
     if(!res.ok){
       const err=await res.text();
+      // Check if rate limit error
+      if(res.status === 429 || err.includes('quota') || err.includes('RATE')) {
+        throw new Error('Rate limit reached — please wait 1 minute and try again');
+      }
       throw new Error('Worker error '+res.status+': '+err.substring(0,100));
     }
 
