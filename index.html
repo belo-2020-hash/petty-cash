@@ -447,34 +447,57 @@ Example: {"vendor":"GEMCO General Trading","date":"02/04/2026","amount":806.40,"
     }
 
     const d = await res.json();
-    console.log('Worker response:', JSON.stringify(d).substring(0,300));
+    console.log('Worker response:', JSON.stringify(d).substring(0,500));
 
+    // Check for API-level errors
     if(d.error){throw new Error(d.error.message||'API error');}
 
-    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const clean = text.replace(/```json|```/gi,'').trim();
+    // Extract text from Gemini response structure
+    let text = '';
+    try {
+      text = d.candidates[0].content.parts[0].text || '';
+    } catch(e) {
+      console.log('Could not extract text from response:', e.message);
+      throw new Error('AI returned unexpected response format');
+    }
+
+    console.log('Raw AI text:', text);
+
+    // Clean and parse JSON from AI response
     let info = {};
-    try{ info=JSON.parse(clean); }
-    catch(e){
-      const m=clean.match(/\{[\s\S]*\}/);
-      if(m) try{info=JSON.parse(m[0]);}catch(e2){info={};}
+    try {
+      // Remove markdown code blocks if present
+      let clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+      // Find the JSON object
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if(start !== -1 && end !== -1) {
+        clean = clean.substring(start, end+1);
+      }
+      info = JSON.parse(clean);
+      console.log('Parsed info:', JSON.stringify(info));
+    } catch(e) {
+      console.log('JSON parse failed:', e.message, 'Raw text was:', text);
+      // Show error but still open verify screen for manual entry
+      info = { confidence: 'low', missing_fields: ['all'] };
+      toast('⚠️ Could not read receipt — please fill manually');
     }
 
     // Ensure all fields exist with correct types
     const result = {
-      vendor:     String(info.vendor      ||''),
-      date:       String(info.date        ||''),
-      amount:     parseFloat(info.amount) ||0,
-      vat:        parseFloat(info.vat)    ||0,
-      purpose:    String(info.purpose     ||''),
-      category:   String(info.category    ||'OTHER'),
-      invoice_no: String(info.invoice_no  ||''),
-      notes:      String(info.notes       ||''),
-      confidence: String(info.confidence  ||'medium'),
-      missing_fields: Array.isArray(info.missing_fields)?info.missing_fields:[]
+      vendor:        String(info.vendor        || ''),
+      date:          String(info.date          || ''),
+      amount:        parseFloat(info.amount)   || 0,
+      vat:           parseFloat(info.vat)      || 0,
+      purpose:       String(info.purpose       || ''),
+      category:      String(info.category      || 'OTHER'),
+      invoice_no:    String(info.invoice_no    || ''),
+      notes:         String(info.notes         || ''),
+      confidence:    String(info.confidence    || 'low'),
+      missing_fields: Array.isArray(info.missing_fields) ? info.missing_fields : []
     };
 
-    console.log('Parsed result:', JSON.stringify(result));
+    console.log('Final result:', JSON.stringify(result));
     bar.classList.remove('on');
     showVerify(result);
 
