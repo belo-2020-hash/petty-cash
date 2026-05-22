@@ -407,41 +407,43 @@ async function doAI(){
   if(!imgB64){toast('⚠️ Take a photo first');return;}
   const bar=document.getElementById('aibar'),tx=document.getElementById('aitxt');
   bar.classList.add('on');
-  tx.textContent='🔧 Enhancing image...';
-  let enhanced=imgB64;
-  try{enhanced=await enhanceImg(imgB64);}catch(e){}
+  tx.textContent='🤖 Claude is reading receipt...';
 
-  tx.textContent='🤖 AI reading receipt...';
   try{
-    // Call Gemini directly from browser — no serverless function needed
-    const WORKER_URL = 'https://petty-cash-worker.belo-2020.workers.dev';
+    // Compress image before sending
+    let enhanced = imgB64;
+    try{ enhanced = await enhanceImg(imgB64); }catch(e){}
 
-    tx.textContent = '🤖 Claude is reading receipt...';
-
-    // Send to Cloudflare Worker which calls Claude API
-    const res = await fetch(WORKER_URL, {
+    const res = await fetch('https://petty-cash-worker.belo-2020.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageB64: enhanced })
     });
 
-    if(!res.ok){
-      const err = await res.text();
-      throw new Error('Error ' + res.status + ': ' + err.substring(0, 150));
+    // Get raw text first for debugging
+    const rawText = await res.text();
+    console.log('Raw Worker response:', rawText.substring(0, 500));
+
+    // Parse as JSON
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch(e) {
+      throw new Error('Worker returned invalid JSON: ' + rawText.substring(0, 100));
     }
 
-    const result = await res.json();
-    console.log('Claude result:', JSON.stringify(result));
-
-    if(result.error) throw new Error(result.error);
+    // Show any error from worker
+    if(result.error) {
+      throw new Error(result.error + (result.raw ? ' Details: ' + result.raw.substring(0,100) : ''));
+    }
 
     bar.classList.remove('on');
     showVerify(result);
 
   }catch(e){
     bar.classList.remove('on');
-    console.error('AI error:',e);
-    toast('⚠️ AI error: '+e.message.substring(0,80));
+    console.error('AI error:', e);
+    toast('⚠️ ' + e.message.substring(0, 120));
   }
 }
 
