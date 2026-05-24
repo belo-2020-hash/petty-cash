@@ -408,42 +408,31 @@ async function doAI(){
   const bar=document.getElementById('aibar'),tx=document.getElementById('aitxt');
   bar.classList.add('on');
   tx.textContent='🤖 Claude is reading receipt...';
-
   try{
-    // Compress image before sending
-    let enhanced = imgB64;
-    try{ enhanced = await enhanceImg(imgB64); }catch(e){}
+    let enhanced=imgB64;
+    try{enhanced=await enhanceImg(imgB64);}catch(e){}
 
-    const res = await fetch('https://petty-cash-worker.belo-2020.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageB64: enhanced })
+    const res=await fetch('https://petty-cash-worker.belo-2020.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageB64:enhanced})
     });
 
-    // Get raw text first for debugging
-    const rawText = await res.text();
-    console.log('Raw Worker response:', rawText.substring(0, 500));
+    const rawText=await res.text();
+    console.log('Worker raw:',rawText.substring(0,300));
 
-    // Parse as JSON
     let result;
-    try {
-      result = JSON.parse(rawText);
-    } catch(e) {
-      throw new Error('Worker returned invalid JSON: ' + rawText.substring(0, 100));
-    }
+    try{result=JSON.parse(rawText);}
+    catch(e){throw new Error('Bad response: '+rawText.substring(0,80));}
 
-    // Show any error from worker
-    if(result.error) {
-      throw new Error(result.error + (result.raw ? ' Details: ' + result.raw.substring(0,100) : ''));
-    }
+    if(result.error) throw new Error(result.error);
 
     bar.classList.remove('on');
     showVerify(result);
-
   }catch(e){
     bar.classList.remove('on');
-    console.error('AI error:', e);
-    toast('⚠️ ' + e.message.substring(0, 120));
+    console.error('doAI error:',e);
+    toast('⚠️ '+e.message.substring(0,120));
   }
 }
 
@@ -544,28 +533,49 @@ function fillV(id, val){
 function closeVerify(){document.getElementById('vovl').classList.remove('on');}
 
 function confirmEntry(){
-  const vendor=document.getElementById('v-vendor').value.trim();
-  const amount=parseFloat(document.getElementById('v-amt').value);
-  if(!vendor){toast('⚠️ Enter vendor name');return;}
-  if(!amount||amount<=0){toast('⚠️ Enter valid amount');return;}
-  const dv=document.getElementById('v-date').value;
-  const date=dv?dv.split('-').reverse().join('/'): new Date().toLocaleDateString('en-GB');
-  const spent=DB.reduce((s,e)=>s+e.amount,0);
-  const entry={
-    id:Date.now(),num:DB.length+1,date,vendor,
-    purpose:document.getElementById('v-purpose').value.trim()||'PURCHASE',
-    category:document.getElementById('v-cat').value,
-    reqBy:document.getElementById('v-reqby').value.trim()||'',
-    amount,vat:parseFloat(document.getElementById('v-vat').value)||0,
-    cashIn:0,balance:BS-spent-amount,
-    invoice_no:document.getElementById('v-invno').value.trim(),
-    notes:document.getElementById('v-notes').value.trim(),
-    image:imgURL||null
-  };
-  DB.push(entry);persist();
-  closeVerify();resetForm();
-  toast('✅ Entry #'+entry.num+' saved!');
-  setTimeout(()=>goTab('log'),600);
+  try {
+    const vendor = (document.getElementById('v-vendor').value || '').trim();
+    const amtStr = (document.getElementById('v-amt').value || '').trim();
+    const amount = parseFloat(amtStr) || 0;
+
+    console.log('confirmEntry - vendor:', vendor, 'amount:', amount, 'amtStr:', amtStr);
+
+    if(!vendor){ toast('⚠️ Please enter vendor name'); return; }
+    if(amount <= 0){ toast('⚠️ Please enter amount greater than 0'); return; }
+
+    const dv = document.getElementById('v-date').value || '';
+    const date = dv ? dv.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB');
+    const spent = DB.reduce((s,e) => s + (e.amount||0), 0);
+
+    const entry = {
+      id: Date.now(),
+      num: DB.length + 1,
+      date: date,
+      vendor: vendor,
+      purpose: (document.getElementById('v-purpose').value || 'PURCHASE').trim(),
+      category: document.getElementById('v-cat').value || 'OTHER',
+      reqBy: (document.getElementById('v-reqby').value || '').trim(),
+      amount: amount,
+      vat: parseFloat(document.getElementById('v-vat').value) || 0,
+      cashIn: 0,
+      balance: BS - spent - amount,
+      invoice_no: (document.getElementById('v-invno').value || '').trim(),
+      notes: (document.getElementById('v-notes').value || '').trim(),
+      image: imgURL || null
+    };
+
+    console.log('Saving entry:', JSON.stringify(entry));
+    DB.push(entry);
+    persist();
+    closeVerify();
+    resetForm();
+    toast('✅ Entry #' + entry.num + ' saved!');
+    setTimeout(() => goTab('log'), 500);
+
+  } catch(e) {
+    console.error('confirmEntry error:', e);
+    toast('⚠️ Error: ' + e.message.substring(0,80));
+  }
 }
 
 function saveManual(){
