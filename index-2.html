@@ -53,9 +53,9 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 .ai-bar p{font-size:12px;color:#6B2D8B;font-weight:600}
 
 /* verify sheet */
-.vovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+.vovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:flex-end;justify-content:center}
 .vovl.on{display:flex}
-.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 100px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;max-height:95vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
 .vsheet h2{font-size:15px;font-weight:700;color:#6B2D8B;margin-bottom:4px}
 .vsheet p.sub{font-size:12px;color:#999;margin-bottom:14px}
 .conf{display:flex;align-items:center;gap:8px;background:#f4f0f8;border-radius:10px;padding:10px 12px;margin-bottom:14px}
@@ -212,7 +212,7 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 </div>
 
 <!-- Verify sheet -->
-<div class="vovl" id="vovl">
+<div class="vovl" id="vovl" onclick="void(0)">
   <div class="vsheet">
     <h2>✅ Verify Receipt Details</h2>
     <p class="sub">AI has read your receipt — check and correct if needed.</p>
