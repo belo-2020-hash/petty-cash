@@ -55,7 +55,7 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 /* verify sheet */
 .vovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
 .vovl.on{display:flex}
-.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;max-height:90vh;overflow-y:auto}
+.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 100px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .vsheet h2{font-size:15px;font-weight:700;color:#6B2D8B;margin-bottom:4px}
 .vsheet p.sub{font-size:12px;color:#999;margin-bottom:14px}
 .conf{display:flex;align-items:center;gap:8px;background:#f4f0f8;border-radius:10px;padding:10px 12px;margin-bottom:14px}
@@ -67,7 +67,7 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 .vf input:focus,.vf select:focus{border-color:#6B2D8B;box-shadow:0 0 0 3px rgba(107,45,139,.1)}
 .ai-hi{border-color:#7B3FA0!important;background:#fdf8ff!important}
 .vfrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.vrow{display:flex;gap:10px;margin-top:6px}
+.vrow{display:flex;gap:10px;margin-top:6px;position:sticky;bottom:0;background:#fff;padding:10px 0 6px;z-index:10}
 .vbtn{flex:1;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;min-height:48px}
 .vbtn:active{opacity:.8}
 .vconfirm{background:#6B2D8B;color:#fff}.vcancel{background:#f0e8f8;color:#6B2D8B}
