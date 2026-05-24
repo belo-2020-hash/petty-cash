@@ -53,9 +53,9 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 .ai-bar p{font-size:12px;color:#6B2D8B;font-weight:600}
 
 /* verify sheet */
-.vovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+.vovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:flex-end;justify-content:center}
 .vovl.on{display:flex}
-.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;max-height:90vh;overflow-y:auto}
+.vsheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;max-height:95vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
 .vsheet h2{font-size:15px;font-weight:700;color:#6B2D8B;margin-bottom:4px}
 .vsheet p.sub{font-size:12px;color:#999;margin-bottom:14px}
 .conf{display:flex;align-items:center;gap:8px;background:#f4f0f8;border-radius:10px;padding:10px 12px;margin-bottom:14px}
@@ -67,7 +67,7 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 .vf input:focus,.vf select:focus{border-color:#6B2D8B;box-shadow:0 0 0 3px rgba(107,45,139,.1)}
 .ai-hi{border-color:#7B3FA0!important;background:#fdf8ff!important}
 .vfrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.vrow{display:flex;gap:10px;margin-top:6px}
+.vrow{display:flex;gap:10px;margin-top:6px;position:sticky;bottom:0;background:#fff;padding:10px 0 6px;z-index:10}
 .vbtn{flex:1;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;min-height:48px}
 .vbtn:active{opacity:.8}
 .vconfirm{background:#6B2D8B;color:#fff}.vcancel{background:#f0e8f8;color:#6B2D8B}
@@ -212,7 +212,7 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
 </div>
 
 <!-- Verify sheet -->
-<div class="vovl" id="vovl">
+<div class="vovl" id="vovl" onclick="void(0)">
   <div class="vsheet">
     <h2>✅ Verify Receipt Details</h2>
     <p class="sub">AI has read your receipt — check and correct if needed.</p>
@@ -245,7 +245,6 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
     </div>
     <div class="vf"><label>Notes (optional)</label><input type="text" id="v-notes" placeholder="Any extra info" autocomplete="off"></div>
     <div class="vrow">
-      <button class="vbtn vcancel" onclick="closeVerify()">✏️ Edit More</button>
       <button class="vbtn vconfirm" onclick="confirmEntry()">✅ Confirm & Save</button>
     </div>
   </div>
@@ -533,28 +532,49 @@ function fillV(id, val){
 function closeVerify(){document.getElementById('vovl').classList.remove('on');}
 
 function confirmEntry(){
-  const vendor=document.getElementById('v-vendor').value.trim();
-  const amount=parseFloat(document.getElementById('v-amt').value);
-  if(!vendor){toast('⚠️ Enter vendor name');return;}
-  if(!amount||amount<=0){toast('⚠️ Enter valid amount');return;}
-  const dv=document.getElementById('v-date').value;
-  const date=dv?dv.split('-').reverse().join('/'): new Date().toLocaleDateString('en-GB');
-  const spent=DB.reduce((s,e)=>s+e.amount,0);
-  const entry={
-    id:Date.now(),num:DB.length+1,date,vendor,
-    purpose:document.getElementById('v-purpose').value.trim()||'PURCHASE',
-    category:document.getElementById('v-cat').value,
-    reqBy:document.getElementById('v-reqby').value.trim()||'',
-    amount,vat:parseFloat(document.getElementById('v-vat').value)||0,
-    cashIn:0,balance:BS-spent-amount,
-    invoice_no:document.getElementById('v-invno').value.trim(),
-    notes:document.getElementById('v-notes').value.trim(),
-    image:imgURL||null
-  };
-  DB.push(entry);persist();
-  closeVerify();resetForm();
-  toast('✅ Entry #'+entry.num+' saved!');
-  setTimeout(()=>goTab('log'),600);
+  try {
+    const vendor = (document.getElementById('v-vendor').value || '').trim();
+    const amtStr = (document.getElementById('v-amt').value || '').trim();
+    const amount = parseFloat(amtStr) || 0;
+
+    console.log('confirmEntry - vendor:', vendor, 'amount:', amount, 'amtStr:', amtStr);
+
+    if(!vendor){ toast('⚠️ Please enter vendor name'); return; }
+    if(amount <= 0){ toast('⚠️ Please enter amount greater than 0'); return; }
+
+    const dv = document.getElementById('v-date').value || '';
+    const date = dv ? dv.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB');
+    const spent = DB.reduce((s,e) => s + (e.amount||0), 0);
+
+    const entry = {
+      id: Date.now(),
+      num: DB.length + 1,
+      date: date,
+      vendor: vendor,
+      purpose: (document.getElementById('v-purpose').value || 'PURCHASE').trim(),
+      category: document.getElementById('v-cat').value || 'OTHER',
+      reqBy: (document.getElementById('v-reqby').value || '').trim(),
+      amount: amount,
+      vat: parseFloat(document.getElementById('v-vat').value) || 0,
+      cashIn: 0,
+      balance: BS - spent - amount,
+      invoice_no: (document.getElementById('v-invno').value || '').trim(),
+      notes: (document.getElementById('v-notes').value || '').trim(),
+      image: imgURL || null
+    };
+
+    console.log('Saving entry:', JSON.stringify(entry));
+    DB.push(entry);
+    persist();
+    closeVerify();
+    resetForm();
+    toast('✅ Entry #' + entry.num + ' saved!');
+    setTimeout(() => goTab('log'), 500);
+
+  } catch(e) {
+    console.error('confirmEntry error:', e);
+    toast('⚠️ Error: ' + e.message.substring(0,80));
+  }
 }
 
 function saveManual(){
