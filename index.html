@@ -407,122 +407,32 @@ async function doAI(){
   if(!imgB64){toast('⚠️ Take a photo first');return;}
   const bar=document.getElementById('aibar'),tx=document.getElementById('aitxt');
   bar.classList.add('on');
-  tx.textContent='🔧 Enhancing image...';
-  let enhanced=imgB64;
-  try{enhanced=await enhanceImg(imgB64);}catch(e){}
-
-  tx.textContent='🤖 AI reading receipt...';
+  tx.textContent='🤖 Claude is reading receipt...';
   try{
-    // Call Gemini directly from browser — no serverless function needed
-    const WORKER_URL = 'https://petty-cash-worker.belo-2020.workers.dev';
-    const prompt = `You are a receipt scanner for a UAE restaurant called Meat The Fish. Extract data from this receipt image.
-Reply with ONLY a raw JSON object. No markdown. No explanation. Just JSON.
-Fields to extract:
-- vendor: store/company name on receipt
-- date: DD/MM/YYYY format (use 2026 if year not visible)
-- amount: final total amount as number (e.g. 806.40)
-- vat: VAT/tax amount as number, 0 if not shown
-- purpose: short description of items bought
-- category: one of: KITCHEN GOODS, TRANSPORT, EQUIPMENT, STAFF, CLEANING, MARKETING, OTHER
-- invoice_no: invoice or receipt number, empty string if not visible
-- notes: payment method or LPO number if visible, empty string if not
-- confidence: high / medium / low
-- missing_fields: array of field names you could not find
+    let enhanced=imgB64;
+    try{enhanced=await enhanceImg(imgB64);}catch(e){}
 
-Example: {"vendor":"GEMCO General Trading","date":"02/04/2026","amount":806.40,"vat":38.40,"purpose":"Soft Vanilla 1.6kg x8","category":"KITCHEN GOODS","invoice_no":"117104","notes":"Bank Transfer","confidence":"high","missing_fields":[]}`;
+    const res=await fetch('https://petty-cash-worker.belo-2020.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageB64:enhanced})
+    });
 
-    // Send image + prompt to Cloudflare Worker — with retry on rate limit
-    let res, attempts = 0;
-    while(attempts < 3) {
-      attempts++;
-      tx.textContent = attempts > 1 ? `🔄 Retry ${attempts}/3...` : '🤖 AI reading receipt...';
-      res = await fetch(WORKER_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          imageB64: enhanced,
-          prompt: prompt
-        })
-      });
-      // If rate limited (429) wait 5 seconds and retry
-      if(res.status === 429) {
-        if(attempts < 3) {
-          tx.textContent = '⏳ Rate limit hit — waiting 6 seconds...';
-          await new Promise(r => setTimeout(r, 6000));
-          continue;
-        }
-      }
-      break;
-    }
+    const rawText=await res.text();
+    console.log('Worker raw:',rawText.substring(0,300));
 
-    if(!res.ok){
-      const err=await res.text();
-      // Check if rate limit error
-      if(res.status === 429 || err.includes('quota') || err.includes('RATE')) {
-        throw new Error('Rate limit reached — please wait 1 minute and try again');
-      }
-      throw new Error('Worker error '+res.status+': '+err.substring(0,100));
-    }
+    let result;
+    try{result=JSON.parse(rawText);}
+    catch(e){throw new Error('Bad response: '+rawText.substring(0,80));}
 
-    const d = await res.json();
-    console.log('Worker response:', JSON.stringify(d).substring(0,500));
+    if(result.error) throw new Error(result.error);
 
-    // Check for API-level errors
-    if(d.error){throw new Error(d.error.message||'API error');}
-
-    // Extract text from Gemini response structure
-    let text = '';
-    try {
-      text = d.candidates[0].content.parts[0].text || '';
-    } catch(e) {
-      console.log('Could not extract text from response:', e.message);
-      throw new Error('AI returned unexpected response format');
-    }
-
-    console.log('Raw AI text:', text);
-
-    // Clean and parse JSON from AI response
-    let info = {};
-    try {
-      // Remove markdown code blocks if present
-      let clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
-      // Find the JSON object
-      const start = clean.indexOf('{');
-      const end = clean.lastIndexOf('}');
-      if(start !== -1 && end !== -1) {
-        clean = clean.substring(start, end+1);
-      }
-      info = JSON.parse(clean);
-      console.log('Parsed info:', JSON.stringify(info));
-    } catch(e) {
-      console.log('JSON parse failed:', e.message, 'Raw text was:', text);
-      // Show error but still open verify screen for manual entry
-      info = { confidence: 'low', missing_fields: ['all'] };
-      toast('⚠️ Could not read receipt — please fill manually');
-    }
-
-    // Ensure all fields exist with correct types
-    const result = {
-      vendor:        String(info.vendor        || ''),
-      date:          String(info.date          || ''),
-      amount:        parseFloat(info.amount)   || 0,
-      vat:           parseFloat(info.vat)      || 0,
-      purpose:       String(info.purpose       || ''),
-      category:      String(info.category      || 'OTHER'),
-      invoice_no:    String(info.invoice_no    || ''),
-      notes:         String(info.notes         || ''),
-      confidence:    String(info.confidence    || 'low'),
-      missing_fields: Array.isArray(info.missing_fields) ? info.missing_fields : []
-    };
-
-    console.log('Final result:', JSON.stringify(result));
     bar.classList.remove('on');
     showVerify(result);
-
   }catch(e){
     bar.classList.remove('on');
-    console.error('AI error:',e);
-    toast('⚠️ AI error: '+e.message.substring(0,80));
+    console.error('doAI error:',e);
+    toast('⚠️ '+e.message.substring(0,120));
   }
 }
 
