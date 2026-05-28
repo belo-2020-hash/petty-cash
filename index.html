@@ -404,12 +404,11 @@ function enhanceImg(b64){
   });
 }
 
-// STEP 1: Improved AI via Netlify function
 async function doAI(){
   if(!imgB64){toast('⚠️ Take a photo first');return;}
   const bar=document.getElementById('aibar'),tx=document.getElementById('aitxt');
   bar.classList.add('on');
-  tx.textContent='🤖 Claude is reading receipt...';
+  tx.textContent='🤖 AI is reading receipt...';
   try{
     let enhanced=imgB64;
     try{enhanced=await enhanceImg(imgB64);}catch(e){}
@@ -427,26 +426,35 @@ async function doAI(){
     try{result=JSON.parse(rawText);}
     catch(e){throw new Error('Bad response: '+rawText.substring(0,80));}
 
+    // Check for errors BEFORE navigating to verify
     if(result.error){
-      // Check if quota error
-      if(result.error.toLowerCase().includes('quota') || result.error.toLowerCase().includes('exceeded')){
-        bar.classList.remove('on');
-        toast('⚠️ Daily limit reached. Please try again tomorrow or use a different receipt.');
-        return;
+      bar.classList.remove('on');
+      const msg = result.error.toLowerCase();
+      if(msg.includes('quota') || msg.includes('exceeded') || msg.includes('limit')){
+        // Show big clear error - stay on scan screen
+        tx.textContent='⚠️ Daily limit reached. Try again tomorrow.';
+        document.getElementById('aibar').classList.add('on');
+        setTimeout(()=>{
+          document.getElementById('aibar').classList.remove('on');
+        }, 5000);
+        toast('⚠️ AI daily limit reached. Try again tomorrow.');
+      } else {
+        toast('⚠️ Error: ' + result.error.substring(0,100));
       }
-      throw new Error(result.error);
+      return; // DO NOT navigate to verify
     }
 
     bar.classList.remove('on');
     showVerify(result);
+
   }catch(e){
     bar.classList.remove('on');
     console.error('doAI error:',e);
-    // Show error clearly and stay on scan screen
-    if(e.message.toLowerCase().includes('quota') || e.message.toLowerCase().includes('exceeded')){
-      toast('⚠️ Daily AI limit reached. Try again tomorrow.');
+    const msg = e.message.toLowerCase();
+    if(msg.includes('quota') || msg.includes('exceeded') || msg.includes('limit')){
+      toast('⚠️ AI daily limit reached. Try again tomorrow.');
     } else {
-      toast('⚠️ '+e.message.substring(0,120));
+      toast('⚠️ '+e.message.substring(0,100));
     }
   }
 }
