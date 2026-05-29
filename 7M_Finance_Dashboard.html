@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7Management — Finance Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:16px 30px;display:flex;align-items:center;justify-content:space-between}
+.header .logo{display:flex;align-items:center;gap:12px}
+.header .logo .circle{width:40px;height:40px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white}
+.header h1{font-size:20px;font-weight:700}
+.header p{font-size:12px;opacity:0.6;margin-top:2px}
+.header-right{display:flex;align-items:center;gap:12px}
+.user-info{text-align:right;color:rgba(255,255,255,0.8);font-size:12px}
+.logout-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:40px;width:100%;max-width:420px}
+.login-box .logo-big{text-align:center;margin-bottom:32px}
+.login-box .logo-big .circle{width:64px;height:64px;background:rgba(255,255,255,0.1);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;margin:0 auto 12px}
+.login-box .logo-big h1{color:white;font-size:22px;font-weight:700}
+.login-box .logo-big p{color:rgba(255,255,255,0.5);font-size:13px;margin-top:4px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.login-field input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 14px;font-size:14px;color:white;outline:none}
+.login-field input:focus{border-color:rgba(255,255,255,0.4)}
+.login-field input::placeholder{color:rgba(255,255,255,0.25)}
+.login-btn{width:100%;background:linear-gradient(135deg,#0f3460,#16213e);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+.login-btn:hover{background:linear-gradient(135deg,#16213e,#0f3460)}
+.login-error{color:#ff6b6b;font-size:13px;margin-top:10px;text-align:center;display:none}
+.login-error.show{display:block}
+
+/* DASHBOARD */
+.content{padding:24px 30px;max-width:1400px;margin:0 auto}
+.page-title{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
+.page-sub{font-size:13px;color:#888;margin-bottom:24px}
+
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.sum-card{background:white;border-radius:14px;padding:18px 20px;border:1px solid #e8e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.sum-card .sc-label{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.sum-card .sc-val{font-size:24px;font-weight:700;color:#1a1a2e}
+.sum-card .sc-sub{font-size:12px;color:#888;margin-top:4px}
+.sum-card.red .sc-val{color:#c0392b}
+.sum-card.green .sc-val{color:#1B5E20}
+.sum-card.purple .sc-val{color:#6B2D8B}
+
+/* RESTAURANT TABLE */
+.section-title{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:14px}
+.restaurants-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:28px}
+.rest-card{background:white;border-radius:14px;border:1px solid #e8e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.rest-card-header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:14px 18px;display:flex;align-items:center;gap:10px}
+.rest-card-header .emoji{width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.rest-card-header .info h3{font-size:14px;font-weight:700}
+.rest-card-header .info p{font-size:11px;opacity:0.6;margin-top:1px}
+.rest-card-header .status{margin-left:auto;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,0.15)}
+.rest-card-body{padding:16px 18px}
+.rest-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.rest-stat .rs-label{font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
+.rest-stat .rs-val{font-size:15px;font-weight:700;color:#1a1a2e}
+.rest-stat .rs-val.red{color:#c0392b}
+.rest-stat .rs-val.green{color:#1B5E20}
+.progress-bar{background:#f0f0f0;border-radius:10px;height:6px;margin-bottom:14px;overflow:hidden}
+.progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#1a1a2e,#6B2D8B);transition:width 0.5s}
+.rest-entries{max-height:200px;overflow-y:auto}
+.rest-entry{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
+.rest-entry:last-child{border-bottom:none}
+.rest-entry .re-vendor{font-weight:600;color:#333}
+.rest-entry .re-meta{color:#aaa;font-size:11px}
+.rest-entry .re-amt{font-weight:700;color:#c0392b}
+.rest-card-footer{padding:12px 18px;background:#fafafa;border-top:1px solid #f0f0f0;display:flex;gap:8px}
+.rest-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;text-align:center}
+.rest-btn-dark{background:#1a1a2e;color:white}
+.rest-btn-light{background:#f0f0f0;color:#333}
+.rest-btn:hover{opacity:0.85}
+
+/* ENTRIES TABLE */
+.entries-section{background:white;border-radius:14px;border:1px solid #e8e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:28px}
+.entries-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.entries-header h3{font-size:15px;font-weight:700;color:#1a1a2e}
+.filter-select{padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;color:#333;outline:none}
+table.entries-table{width:100%;border-collapse:collapse}
+table.entries-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;background:#fafafa;border-bottom:1px solid #f0f0f0}
+table.entries-table td{padding:10px 14px;font-size:13px;color:#333;border-bottom:1px solid #f8f8f8}
+table.entries-table tr:hover td{background:#fafafa}
+.badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-purple{background:#f0e8f8;color:#6B2D8B}
+.badge-green{background:#e8f5e9;color:#1B5E20}
+.badge-blue{background:#e3f2fd;color:#1565c0}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.8);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:12px}
+.spin{width:32px;height:32px;border:3px solid #e0e0e0;border-top:3px solid #1a1a2e;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading-overlay p{color:#666;font-size:14px}
+
+.empty-state{text-align:center;padding:40px 20px;color:#aaa}
+.empty-state .ei{font-size:48px;display:block;margin-bottom:8px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal-header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:16px 16px 0 0;position:sticky;top:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-close{background:rgba(255,255,255,0.15);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px}
+.modal-body{padding:20px}
+.modal-body img{width:100%;border-radius:8px;margin-top:12px}
+.modal-entry-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.mei{background:#f8f8f8;border-radius:8px;padding:10px 12px}
+.mei .mei-label{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
+.mei .mei-val{font-size:14px;font-weight:600;color:#333}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spin"></div>
+  <p>Loading dashboard...</p>
+</div>
+
+<!-- Login -->
+<div class="login-wrap" id="loginWrap" style="display:none">
+  <div class="login-box">
+    <div class="logo-big">
+      <div class="circle">7</div>
+      <h1>7MANAGEMENT</h1>
+      <p>Finance Dashboard</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="finance@7management.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In to Dashboard</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" style="display:none">
+  <div class="header">
+    <div class="logo">
+      <div class="circle">7</div>
+      <div>
+        <h1>7Management</h1>
+        <p>Finance Dashboard — Petty Cash Overview</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-info" id="userInfo"></div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-title">Petty Cash Overview</div>
+    <div class="page-sub" id="dashDate">Loading...</div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="sum-card purple">
+        <div class="sc-label">Total Restaurants</div>
+        <div class="sc-val" id="sumRestaurants">0</div>
+        <div class="sc-sub">Active this period</div>
+      </div>
+      <div class="sum-card red">
+        <div class="sc-label">Total Spent (All)</div>
+        <div class="sc-val" id="sumSpent">AED 0</div>
+        <div class="sc-sub">Across all restaurants</div>
+      </div>
+      <div class="sum-card green">
+        <div class="sc-label">Total Cash on Hand</div>
+        <div class="sc-val" id="sumCash">AED 0</div>
+        <div class="sc-sub">Remaining balance</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-label">Total Entries</div>
+        <div class="sc-val" id="sumEntries">0</div>
+        <div class="sc-sub">Receipts scanned</div>
+      </div>
+    </div>
+
+    <!-- Restaurant Cards -->
+    <div class="section-title">Restaurants</div>
+    <div class="restaurants-grid" id="restaurantsGrid">
+      <div class="empty-state"><span class="ei">🏪</span><p>Loading restaurants...</p></div>
+    </div>
+
+    <!-- All Entries Table -->
+    <div class="entries-section">
+      <div class="entries-header">
+        <h3>All Transactions</h3>
+        <select class="filter-select" id="restaurantFilter" onchange="filterEntries()">
+          <option value="all">All Restaurants</option>
+        </select>
+      </div>
+      <div id="entriesTable">
+        <div class="empty-state"><span class="ei">📋</span><p>Loading entries...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Detail Modal -->
+<div class="modal-overlay" id="entryModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle">Entry Details</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB60-Bg5avUs91P9xUGQuwa0PHVvGvkBLM",
+  authDomain: "management-pettycash.firebaseapp.com",
+  projectId: "management-pettycash",
+  storageBucket: "management-pettycash.firebasestorage.app",
+  messagingSenderId: "937839035242",
+  appId: "1:937839035242:web:b87c7b6d48cad26ca5db13"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let allEntries = [];
+let allUsers = [];
+let currentUser = null;
+
+// Auth
+auth.onAuthStateChanged(async function(user) {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  if (user) {
+    currentUser = user;
+    const doc = await db.collection('users').doc(user.uid).get();
+    const profile = doc.exists ? doc.data() : {};
+    if (profile.role !== 'finance' && profile.role !== 'admin') {
+      document.getElementById('loginWrap').style.display = 'flex';
+      document.getElementById('loginError').textContent = 'Access denied. Finance accounts only.';
+      document.getElementById('loginError').classList.add('show');
+      auth.signOut();
+      return;
+    }
+    document.getElementById('userInfo').textContent = user.email;
+    showDashboard();
+  } else {
+    document.getElementById('loginWrap').style.display = 'flex';
+  }
+});
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if(!email||!password){errEl.textContent='Please enter email and password';errEl.classList.add('show');return;}
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch(e) {
+    errEl.textContent = 'Invalid email or password';
+    errEl.classList.add('show');
+  }
+}
+
+function doLogout(){auth.signOut();document.getElementById('dashboard').style.display='none';document.getElementById('loginWrap').style.display='flex';}
+
+async function showDashboard() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('dashDate').textContent = 'Last updated: ' + new Date().toLocaleString('en-AE');
+  await loadAllData();
+}
+
+async function loadAllData() {
+  try {
+    // Load all users
+    const usersSnap = await db.collection('users').get();
+    allUsers = [];
+    usersSnap.forEach(doc => allUsers.push({id: doc.id, ...doc.data()}));
+    const managers = allUsers.filter(u => u.role === 'manager' || (!u.role));
+
+    // Load all entries
+    const entriesSnap = await db.collection('entries').orderBy('createdAt', 'desc').get();
+    allEntries = [];
+    entriesSnap.forEach(doc => allEntries.push({id: doc.id, ...doc.data()}));
+
+    updateSummaryCards(managers);
+    renderRestaurantCards(managers);
+    renderEntriesTable(allEntries);
+    populateFilter(managers);
+  } catch(e) {
+    console.error('Load data error:', e);
+    // Try without orderBy
+    try {
+      const entriesSnap = await db.collection('entries').get();
+      allEntries = [];
+      entriesSnap.forEach(doc => allEntries.push({id: doc.id, ...doc.data()}));
+      const usersSnap = await db.collection('users').get();
+      allUsers = [];
+      usersSnap.forEach(doc => allUsers.push({id: doc.id, ...doc.data()}));
+      const managers = allUsers.filter(u => u.role === 'manager' || (!u.role && u.restaurant));
+      updateSummaryCards(managers);
+      renderRestaurantCards(managers);
+      renderEntriesTable(allEntries);
+      populateFilter(managers);
+    } catch(e2) { console.error(e2); }
+  }
+}
+
+function updateSummaryCards(managers) {
+  const totalSpent = allEntries.reduce((s,e) => s + (e.amount||0), 0);
+  const totalBalance = allEntries.reduce((s,e) => {
+    const user = allUsers.find(u => u.id === e.userId);
+    return s + (user ? (user.startingBalance||15000) : 15000);
+  }, 0);
+  document.getElementById('sumRestaurants').textContent = managers.length;
+  document.getElementById('sumSpent').textContent = 'AED ' + totalSpent.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('sumEntries').textContent = allEntries.length;
+  // Calculate total cash on hand
+  let totalCash = 0;
+  managers.forEach(m => {
+    const mEntries = allEntries.filter(e => e.userId === m.id);
+    const spent = mEntries.reduce((s,e) => s+(e.amount||0), 0);
+    totalCash += (m.startingBalance||15000) - spent;
+  });
+  document.getElementById('sumCash').textContent = 'AED ' + totalCash.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function renderRestaurantCards(managers) {
+  const grid = document.getElementById('restaurantsGrid');
+  if(!managers.length){
+    grid.innerHTML = '<div class="empty-state"><span class="ei">🏪</span><p>No restaurants found.<br>Managers need to log in first.</p></div>';
+    return;
+  }
+  grid.innerHTML = managers.map(m => {
+    const mEntries = allEntries.filter(e => e.userId === m.id);
+    const spent = mEntries.reduce((s,e) => s+(e.amount||0), 0);
+    const bs = m.startingBalance || 15000;
+    const cash = bs - spent;
+    const pct = Math.min(100, Math.round((spent/bs)*100));
+    const recentEntries = mEntries.slice(-3).reverse();
+    const entriesHTML = recentEntries.length ? recentEntries.map(e => `
+      <div class="rest-entry" onclick="showEntryDetail('${e.id}')">
+        <div><div class="re-vendor">${e.vendor||'-'}</div><div class="re-meta">${e.date||''} · ${e.reqBy||'-'}</div></div>
+        <div class="re-amt">AED ${(e.amount||0).toFixed(2)}</div>
+      </div>`).join('') : '<div class="empty-state" style="padding:16px"><p>No entries yet</p></div>';
+
+    return `
+    <div class="rest-card">
+      <div class="rest-card-header">
+        <div class="emoji">${m.emoji||'🍽️'}</div>
+        <div class="info">
+          <h3>${m.restaurant||'Restaurant'}</h3>
+          <p>Period #${m.periodNumber||1} · ${mEntries.length} entries</p>
+        </div>
+        <div class="status">${pct}% used</div>
+      </div>
+      <div class="rest-card-body">
+        <div class="rest-stats">
+          <div class="rest-stat"><div class="rs-label">Starting</div><div class="rs-val">AED ${(bs/1000).toFixed(0)}K</div></div>
+          <div class="rest-stat"><div class="rs-label">Spent</div><div class="rs-val red">AED ${spent.toFixed(0)}</div></div>
+          <div class="rest-stat"><div class="rs-label">On Hand</div><div class="rs-val green">AED ${cash.toFixed(0)}</div></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="rest-entries">${entriesHTML}</div>
+      </div>
+      <div class="rest-card-footer">
+        <button class="rest-btn rest-btn-dark" onclick="viewRestaurantAll('${m.id}')">View All Entries</button>
+        <button class="rest-btn rest-btn-light" onclick="refreshData()">🔄 Refresh</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEntriesTable(entries) {
+  const container = document.getElementById('entriesTable');
+  if(!entries.length){
+    container.innerHTML = '<div class="empty-state"><span class="ei">📋</span><p>No entries found</p></div>';
+    return;
+  }
+  const sorted = [...entries].sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+  container.innerHTML = `
+    <table class="entries-table">
+      <thead>
+        <tr>
+          <th>Restaurant</th><th>#</th><th>Date</th><th>Vendor</th>
+          <th>Purpose</th><th>Requested By</th><th>Amount</th>
+          <th>Category</th><th>Invoice No</th><th>Receipt</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sorted.map(e => {
+          const user = allUsers.find(u => u.id === e.userId);
+          return `<tr>
+            <td><span style="font-weight:600">${user?user.emoji||'🍽️':''} ${e.restaurant||'-'}</span></td>
+            <td><span class="badge badge-purple">#${e.num||'-'}</span></td>
+            <td>${e.date||'-'}</td>
+            <td><strong>${e.vendor||'-'}</strong></td>
+            <td>${(e.purpose||'-').substring(0,30)}</td>
+            <td>${e.reqBy||'-'}</td>
+            <td style="font-weight:700;color:#c0392b">AED ${(e.amount||0).toFixed(2)}</td>
+            <td><span class="badge badge-blue">${e.category||'-'}</span></td>
+            <td>${e.invoice_no||'-'}</td>
+            <td>${e.image?'<button class="rest-btn rest-btn-dark" style="padding:4px 10px;font-size:11px" onclick="showEntryDetail(\''+e.id+'\')">View</button>':'-'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function populateFilter(managers) {
+  const sel = document.getElementById('restaurantFilter');
+  sel.innerHTML = '<option value="all">All Restaurants</option>';
+  managers.forEach(m => {
+    sel.innerHTML += `<option value="${m.id}">${m.emoji||'🍽️'} ${m.restaurant||'Restaurant'}</option>`;
+  });
+}
+
+function filterEntries() {
+  const val = document.getElementById('restaurantFilter').value;
+  const filtered = val === 'all' ? allEntries : allEntries.filter(e => e.userId === val);
+  renderEntriesTable(filtered);
+}
+
+function viewRestaurantAll(userId) {
+  document.getElementById('restaurantFilter').value = userId;
+  filterEntries();
+  document.querySelector('.entries-section').scrollIntoView({behavior:'smooth'});
+}
+
+function showEntryDetail(id) {
+  const e = allEntries.find(x => x.id === id);
+  if(!e) return;
+  const user = allUsers.find(u => u.id === e.userId);
+  document.getElementById('modalTitle').textContent = (user?user.emoji+' ':'')+e.vendor+' — AED '+(e.amount||0).toFixed(2);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-entry-info">
+      <div class="mei"><div class="mei-label">Restaurant</div><div class="mei-val">${user?user.restaurant:e.restaurant||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Date</div><div class="mei-val">${e.date||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Vendor</div><div class="mei-val">${e.vendor||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Amount</div><div class="mei-val" style="color:#c0392b">AED ${(e.amount||0).toFixed(2)}</div></div>
+      <div class="mei"><div class="mei-label">Purpose</div><div class="mei-val">${e.purpose||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Category</div><div class="mei-val">${e.category||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Requested By</div><div class="mei-val">${e.reqBy||'-'}</div></div>
+      <div class="mei"><div class="mei-label">VAT</div><div class="mei-val">AED ${(e.vat||0).toFixed(2)}</div></div>
+      <div class="mei"><div class="mei-label">Invoice No</div><div class="mei-val">${e.invoice_no||'-'}</div></div>
+      <div class="mei"><div class="mei-label">Notes</div><div class="mei-val">${e.notes||'-'}</div></div>
+    </div>
+    ${e.image?'<img src="'+e.image+'" alt="receipt">':'<p style="color:#aaa;text-align:center;padding:20px">No receipt image</p>'}`;
+  document.getElementById('entryModal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('entryModal').classList.remove('open');}
+async function refreshData(){await loadAllData();document.getElementById('dashDate').textContent='Last updated: '+new Date().toLocaleString('en-AE');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+</script>
+</body>
+</html>
