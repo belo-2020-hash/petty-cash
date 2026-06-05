@@ -1,0 +1,24 @@
+{
+  "name": "7M Petty Cash Manager",
+  "short_name": "Petty Cash",
+  "description": "7Management Petty Cash tracking for restaurant managers",
+  "start_url": "/petty-cash/7M_Manager_App.html",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#6C63FF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
