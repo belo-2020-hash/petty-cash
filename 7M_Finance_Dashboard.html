@@ -68,10 +68,10 @@ body::before{content:'';position:fixed;inset:0;background:
 
 /* HEADER */
 .main-header{margin-left:0;background:var(--header-bg);border-bottom:none;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 20px rgba(44,36,22,0.2)}
-.header-brand{display:flex;align-items:center;gap:14px}
-.header-7{width:38px;height:38px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:var(--header-bg)}
-.header-brand h1{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;letter-spacing:0.5px;color:#F5F0E8}
-.header-brand p{font-size:11px;color:rgba(245,240,232,0.6);letter-spacing:1px}
+.header-brand{display:flex;flex-direction:column;gap:2px}
+.header-7{display:none}
+.header-brand h1{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;letter-spacing:0.5px;color:#F5F0E8;margin:0}
+.header-brand p{font-size:11px;color:rgba(245,240,232,0.6);letter-spacing:1px;margin:0}
 .header-right{display:flex;align-items:center;gap:12px}
 .header-user{font-size:12px;color:rgba(245,240,232,0.6)}
 .sign-out-btn{background:rgba(245,240,232,0.1);border:1px solid rgba(245,240,232,0.2);color:#F5F0E8;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all 0.3s}
@@ -235,10 +235,8 @@ table.et tr:hover td{background:rgba(139,107,61,0.03)}
   <!-- Header -->
   <div class="main-header">
     <div class="header-brand">
-      <div>
-        <h1>7Management — Finance</h1>
-        <p>Petty Cash Overview</p>
-      </div>
+      <h1>7Management — Finance</h1>
+      <p>Petty Cash Overview</p>
     </div>
     <div class="header-right">
       <div class="header-user" id="userInfo"></div>
