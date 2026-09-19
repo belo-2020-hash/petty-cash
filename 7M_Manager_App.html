@@ -1215,13 +1215,24 @@ async function confirmClosePeriod() {
   const cashOnHand = BS - totalSpent;
   const newPeriod = PN + 1;
 
+  // Step 1: Check export confirmation
+  if(!confirm(
+    '📤 BEFORE CLOSING — HAVE YOU EXPORTED?\n\n' +
+    'Please confirm you have already:\n' +
+    '\u2022 Exported the HTML Report\n' +
+    '\u2022 Exported the Excel Report\n' +
+    '\u2022 Sent both reports to Finance\n\n' +
+    'Tap OK only if reports are already exported and sent.'
+  )) return;
+
+  // Step 2: Final close confirmation
   if(!confirm(
     '🔒 CLOSE PERIOD #' + PN + '?\n\n' +
     '\u2022 Total spent: AED ' + totalSpent.toFixed(2) + '\n' +
     '\u2022 Cash on hand: AED ' + cashOnHand.toFixed(2) + '\n' +
     '\u2022 Finance will replenish: AED ' + totalSpent.toFixed(2) + '\n\n' +
     'This will archive all ' + DB.length + ' entries and start Period #' + newPeriod + '.\n\n' +
-    'Are you sure?'
+    'This action CANNOT be undone. Are you sure?'
   )) return;
 
   try {

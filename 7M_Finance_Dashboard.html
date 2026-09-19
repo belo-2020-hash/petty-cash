@@ -180,6 +180,7 @@ table.et tr:hover td{background:rgba(139,107,61,0.03)}
 .loading-overlay p{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text2);letter-spacing:1px}
 
 /* SCROLLBAR */
+.archive-period-badge{background:rgba(139,107,61,0.1);color:var(--accent);border:1px solid rgba(139,107,61,0.2);padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:rgba(139,107,61,0.3);border-radius:2px}
@@ -281,6 +282,30 @@ table.et tr:hover td{background:rgba(139,107,61,0.03)}
     <div class="section-title">Restaurants</div>
     <div class="restaurants-grid" id="restaurantsGrid">
       <div class="empty-state"><span class="ei">🏪</span><p>Loading restaurants...</p></div>
+    </div>
+
+    <!-- Archive -->
+    <div class="section-title" id="archiveToggleTitle" onclick="toggleArchive()" style="cursor:pointer">
+      📦 Archived Periods <span id="archiveChevron" style="font-size:12px;color:var(--text2)">▼ Click to expand</span>
+    </div>
+    <div id="archiveSection" style="display:none;margin-bottom:28px">
+      <div id="archiveFilters" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <select class="filter-select" id="archiveRestaurantFilter" onchange="loadArchive()">
+          <option value="all">All Restaurants</option>
+        </select>
+        <select class="filter-select" id="archivePeriodFilter" onchange="loadArchive()">
+          <option value="all">All Periods</option>
+        </select>
+      </div>
+      <div class="table-section">
+        <div class="table-header">
+          <h3>ARCHIVED ENTRIES</h3>
+          <span id="archiveCount" style="font-size:12px;color:var(--text2)">-</span>
+        </div>
+        <div id="archiveTable">
+          <div class="empty-state"><span class="ei">📦</span><p>Click to load archived periods</p></div>
+        </div>
+      </div>
     </div>
 
     <!-- Transactions -->
@@ -412,6 +437,7 @@ async function loadAllData() {
     renderRestaurantCards(managers);
     renderEntriesTable(allEntries);
     populateFilter(managers);
+  populateArchiveFilter(managers);
   } catch(e) {
     console.error('Load data error:', e);
     // Try without orderBy
@@ -428,6 +454,7 @@ async function loadAllData() {
       renderRestaurantCards(managers);
       renderEntriesTable(allEntries);
       populateFilter(managers);
+  populateArchiveFilter(managers);
     } catch(e2) { console.error(e2); }
   }
 }
@@ -583,6 +610,159 @@ function showEntryDetail(id) {
 }
 
 function closeModal(){document.getElementById('entryModal').classList.remove('open');}
+
+// ── ARCHIVE SECTION ────────────────────────────────────────────────────────
+let archiveLoaded = false;
+let allArchiveEntries = [];
+
+function toggleArchive() {
+  const section = document.getElementById('archiveSection');
+  const chevron = document.getElementById('archiveChevron');
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+    chevron.textContent = '▲ Click to collapse';
+    if (!archiveLoaded) loadArchive();
+  } else {
+    section.style.display = 'none';
+    chevron.textContent = '▼ Click to expand';
+  }
+}
+
+async function loadArchive() {
+  const tableDiv = document.getElementById('archiveTable');
+  const countEl = document.getElementById('archiveCount');
+  tableDiv.innerHTML = '<div class="empty-state"><span class="ei">⏳</span><p>Loading archived entries...</p></div>';
+
+  try {
+    const snap = await db.collection('archive')
+      .orderBy('archivedAt', 'desc')
+      .limit(500)
+      .get();
+
+    allArchiveEntries = [];
+    snap.forEach(doc => allArchiveEntries.push({id: doc.id, ...doc.data()}));
+    archiveLoaded = true;
+
+    // Populate restaurant filter
+    const restFilter = document.getElementById('archiveRestaurantFilter');
+    const currentRestVal = restFilter.value;
+    const restaurants = [...new Set(allArchiveEntries.map(e => e.restaurant).filter(Boolean))].sort();
+    restFilter.innerHTML = '<option value="all">All Restaurants</option>';
+    restaurants.forEach(r => {
+      restFilter.innerHTML += `<option value="${r}" ${r === currentRestVal ? 'selected' : ''}>${r}</option>`;
+    });
+
+    // Populate period filter
+    const periodFilter = document.getElementById('archivePeriodFilter');
+    const currentPeriodVal = periodFilter.value;
+    const periods = [...new Set(allArchiveEntries.map(e => e.archivedFromPeriod).filter(e => e !== undefined))].sort((a,b) => b-a);
+    periodFilter.innerHTML = '<option value="all">All Periods</option>';
+    periods.forEach(p => {
+      periodFilter.innerHTML += `<option value="${p}" ${p == currentPeriodVal ? 'selected' : ''}>Period #${p}</option>`;
+    });
+
+    renderArchiveTable();
+
+  } catch(e) {
+    console.error('Archive load error:', e);
+    tableDiv.innerHTML = '<div class="empty-state"><span class="ei">❌</span><p>Error loading archive: ' + e.message + '</p></div>';
+  }
+}
+
+function renderArchiveTable() {
+  const tableDiv = document.getElementById('archiveTable');
+  const countEl = document.getElementById('archiveCount');
+
+  // Apply filters
+  const restVal = document.getElementById('archiveRestaurantFilter').value;
+  const periodVal = document.getElementById('archivePeriodFilter').value;
+
+  let filtered = allArchiveEntries;
+  if (restVal !== 'all') filtered = filtered.filter(e => e.restaurant === restVal);
+  if (periodVal !== 'all') filtered = filtered.filter(e => e.archivedFromPeriod == periodVal);
+
+  countEl.textContent = filtered.length + ' entries found';
+
+  if (!filtered.length) {
+    tableDiv.innerHTML = '<div class="empty-state"><span class="ei">📦</span><p>No archived entries found</p></div>';
+    return;
+  }
+
+  // Group by period and restaurant
+  const totalSpent = filtered.reduce((s,e) => s + (e.amount||0), 0);
+
+  tableDiv.innerHTML = `
+    <div style="padding:12px 20px;background:#FAF7F2;border-bottom:1px solid rgba(139,107,61,0.1);display:flex;gap:20px">
+      <span style="font-size:13px;color:var(--text2)">Total entries: <strong style="color:var(--text)">${filtered.length}</strong></span>
+      <span style="font-size:13px;color:var(--text2)">Total spent: <strong style="color:var(--red)">AED ${totalSpent.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>
+    </div>
+    <table class="et">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Restaurant</th>
+          <th>#</th>
+          <th>Date</th>
+          <th>Vendor</th>
+          <th>Purpose</th>
+          <th>Requested By</th>
+          <th>Amount</th>
+          <th>Category</th>
+          <th>Invoice No</th>
+          <th>Receipt</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map(e => `<tr>
+          <td><span class="archive-period-badge">Period #${e.archivedFromPeriod || '?'}</span></td>
+          <td><span style="font-weight:600">${e.emoji||''} ${e.restaurant||'-'}</span></td>
+          <td><span class="badge badge-purple">#${e.num||'-'}</span></td>
+          <td>${e.date||'-'}</td>
+          <td><strong>${e.vendor||'-'}</strong></td>
+          <td>${(e.purpose||'-').substring(0,25)}</td>
+          <td>${e.reqBy||'-'}</td>
+          <td style="font-weight:700;color:#B44F2A">AED ${(e.amount||0).toFixed(2)}</td>
+          <td><span class="badge badge-blue">${e.category||'-'}</span></td>
+          <td>${e.invoice_no||'-'}</td>
+          <td>${(e.receiptUrl||e.image)?'<button class="view-btn" onclick="showArchiveEntry(\''+e.id+'\')">'+'View</button>':'-'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function showArchiveEntry(id) {
+  const e = allArchiveEntries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('modalTitle').textContent = (e.emoji||'') + ' ' + e.vendor + ' — AED ' + (e.amount||0).toFixed(2) + ' (Period #' + (e.archivedFromPeriod||'?') + ')';
+  const imgSrc = e.receiptUrl || e.image || '';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="mei-grid">
+      <div class="mei"><div class="ml">Restaurant</div><div class="mv">${e.restaurant||'-'}</div></div>
+      <div class="mei"><div class="ml">Period</div><div class="mv">Period #${e.archivedFromPeriod||'?'}</div></div>
+      <div class="mei"><div class="ml">Date</div><div class="mv">${e.date||'-'}</div></div>
+      <div class="mei"><div class="ml">Vendor</div><div class="mv">${e.vendor||'-'}</div></div>
+      <div class="mei"><div class="ml">Amount</div><div class="mv" style="color:#B44F2A">AED ${(e.amount||0).toFixed(2)}</div></div>
+      <div class="mei"><div class="ml">Category</div><div class="mv">${e.category||'-'}</div></div>
+      <div class="mei"><div class="ml">Requested By</div><div class="mv">${e.reqBy||'-'}</div></div>
+      <div class="mei"><div class="ml">Invoice No</div><div class="mv">${e.invoice_no||'-'}</div></div>
+      <div class="mei"><div class="ml">Purpose</div><div class="mv">${e.purpose||'-'}</div></div>
+      <div class="mei"><div class="ml">Notes</div><div class="mv">${e.notes||'-'}</div></div>
+    </div>
+    ${imgSrc ? '<img src="'+imgSrc+'" alt="receipt" style="width:100%;border-radius:8px;margin-top:8px">' : 
+    '<p style="color:#aaa;text-align:center;padding:20px">No receipt image</p>'}`;
+  document.getElementById('entryModal').classList.add('open');
+}
+
+// Populate archive restaurant filter when managers load
+function populateArchiveFilter(managers) {
+  const sel = document.getElementById('archiveRestaurantFilter');
+  if (!sel) return;
+  managers.forEach(m => {
+    if (!sel.querySelector(`option[value="${m.restaurant}"]`)) {
+      sel.innerHTML += `<option value="${m.restaurant}">${m.emoji||''} ${m.restaurant}</option>`;
+    }
+  });
+}
 async function handleReport(userId, restaurant, currentStatus) {
   if (currentStatus === 'none' || currentStatus === undefined) {
     // Request report
