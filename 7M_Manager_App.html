@@ -326,9 +326,13 @@ body{font-family:Arial,sans-serif;background:#f4f0f8;min-height:100vh;max-width:
       <div class="scard"><div class="sl">Total Spent</div><div class="sv" id="stotal" style="color:#c0392b">AED 0.00</div></div>
       <div class="scard"><div class="sl">Cash on Hand</div><div class="sv" id="sbal" style="color:#1B5E20">AED 0.00</div></div>
     </div>
-    <button class="xbtn" onclick="exportHTML()">🌐 Export Report (HTML)</button>
-    <button class="xbtn" id="xbtn" onclick="exportXL()" style="background:#2E7D32">📊 Export to Excel</button>
     <div class="entries" id="elist"></div>
+    <div style="margin-top:16px;padding:16px;background:rgba(108,99,255,0.05);border-radius:12px;border:1px solid rgba(108,99,255,0.15)">
+      <div style="font-size:11px;font-weight:700;color:#8899BB;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📤 Reports</div>
+      <button class="xbtn" onclick="exportHTML()" style="margin-bottom:8px">🌐 Download HTML Report</button>
+      <button class="xbtn" id="xbtn" onclick="exportXL()" style="background:#2E7D32;margin-bottom:8px">📊 Download Excel Report</button>
+      <button class="xbtn" onclick="confirmSendToHO()" style="background:linear-gradient(135deg,#B44F2A,#8B3A1E)">📧 Send Reports to Head Office</button>
+    </div>
   </div>
 </div>
 
@@ -1349,6 +1353,114 @@ function hideSuperPanel() {
   superTapCount = 0;
 }
 function fmt(n){return n.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// ── SEND REPORTS TO HEAD OFFICE ──────────────────────────────────────────
+const HO_EMAIL = 'zianebelkacem@live.fr';
+
+async function confirmSendToHO() {
+  if(!DB.length){ toast('No entries to send'); return; }
+
+  const totalSpent = DB.reduce((s,e) => s+(e.amount||0), 0);
+  const confirmed = confirm(
+    '📧 SEND REPORTS TO HEAD OFFICE?\n\n' +
+    'This will send to: ' + HO_EMAIL + '\n\n' +
+    '\u2022 HTML Report (with receipt links)\n' +
+    '\u2022 Excel Report (all entries)\n\n' +
+    'Period #' + PN + ' | ' + DB.length + ' entries | AED ' + totalSpent.toFixed(2) + '\n\n' +
+    'Confirm to send?'
+  );
+  if(!confirmed) return;
+
+  await sendToHO();
+}
+
+async function sendToHO() {
+  const sendBtn = document.querySelector('[onclick="confirmSendToHO()"]');
+  if(sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Sending...'; }
+
+  try {
+    const restaurantName = userProfile ? userProfile.restaurant : 'Restaurant';
+    const periodLabel = 'Period #' + PN;
+    const totalSpent = DB.reduce((s,e) => s+(e.amount||0), 0);
+    const dateStr = new Date().toLocaleDateString('en-GB');
+
+    // Build summary of entries for email body
+    const entrySummary = DB.map(e =>
+      '#'+e.num+' | '+e.date+' | '+(e.vendor||'-')+' | AED '+(e.amount||0).toFixed(2)
+    ).join('\n');
+
+    // Log the send request in Firestore for Finance Dashboard visibility
+    await db.collection('report_sends').add({
+      restaurantId: currentUser.uid,
+      restaurant: restaurantName,
+      emoji: userProfile?.emoji || '',
+      periodNumber: PN,
+      periodLabel: periodLabel,
+      totalSpent: totalSpent,
+      entryCount: DB.length,
+      sentTo: HO_EMAIL,
+      sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+      sentBy: currentUser.email,
+      status: 'sent'
+    });
+
+    // Update report status in Firestore
+    await db.collection('report_status').doc(currentUser.uid).set({
+      status: 'sent',
+      sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+      sentBy: currentUser.email,
+      restaurant: restaurantName,
+      periodNumber: PN,
+      totalSpent: totalSpent,
+      entryCount: DB.length
+    });
+
+    // Open email client with the report details
+    // This opens the manager's email app pre-filled
+    const subject = encodeURIComponent('[7M Petty Cash] ' + restaurantName + ' - ' + periodLabel + ' - AED ' + totalSpent.toFixed(2));
+    const body = encodeURIComponent(
+      '7Management Petty Cash Report\n' +
+      '================================\n\n' +
+      'Restaurant: ' + restaurantName + '\n' +
+      'Period: ' + periodLabel + '\n' +
+      'Date: ' + dateStr + '\n' +
+      'Total Entries: ' + DB.length + '\n' +
+      'Total Spent: AED ' + totalSpent.toFixed(2) + '\n\n' +
+      'ENTRIES SUMMARY:\n' +
+      '----------------\n' +
+      entrySummary + '\n\n' +
+      '================================\n' +
+      'Please find attached:\n' +
+      '- HTML Report (with receipt images)\n' +
+      '- Excel Report (spreadsheet)\n\n' +
+      'Note: Please download and attach both reports from the app before sending.\n\n' +
+      'Sent from 7Management Petty Cash App'
+    );
+
+    // Trigger both downloads first, then open email
+    toast('⏳ Preparing reports...');
+
+    // Download HTML
+    await new Promise(resolve => setTimeout(resolve, 500));
+    exportHTML();
+
+    // Download Excel after short delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    exportXL();
+
+    // Open email client after downloads start
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    window.location.href = 'mailto:' + HO_EMAIL + '?subject=' + subject + '&body=' + body;
+
+    toast('✅ Reports downloaded! Email opened — please attach and send.');
+
+  } catch(e) {
+    console.error('Send error:', e);
+    toast('Error: ' + e.message.substring(0, 60));
+  } finally {
+    if(sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📧 Send Reports to Head Office'; }
+  }
+}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMod();});
 document.getElementById('vverify').style.display='none';
